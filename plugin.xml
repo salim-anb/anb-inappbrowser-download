@@ -16,6 +16,6 @@
     </config-file>
 
     <config-file target="*-Info.plist" parent="LSSupportsOpeningDocumentsInPlace">
-          <string>Uses camera so you can take a picture of the contract</string>
+          <true/>
     </config-file>
 </plugin>
