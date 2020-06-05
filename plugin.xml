@@ -11,11 +11,19 @@
         <variable name="ANDROID_SUPPORT_V4_VERSION" value="27.+" />
     </dependency>
 
-    <config-file target="*-Info.plist" parent="NSCameraUsageDescription">
-          <string>Uses camera so you can take a picture of the contract</string>
-    </config-file>
-
-    <config-file target="*-Info.plist" parent="LSSupportsOpeningDocumentsInPlace">
+    <platform name="ios">
+        <config-file target="*-Info.plist" parent="NSCameraUsageDescription">
+            <string>Uses camera so you can take a picture of the contract</string>
+        </config-file>
+        <config-file target="*-Info.plist" parent="LSSupportsOpeningDocumentsInPlace">
           <true/>
     </config-file>
+    </platform>
+
+    <platform name="android">
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+        </config-file>
+    </platform>
 </plugin>
