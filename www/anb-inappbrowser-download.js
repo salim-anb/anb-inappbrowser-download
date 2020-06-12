@@ -66,9 +66,26 @@ function downloadDocument(args, successCallback, errorCallback) {
                         );
 }
 
+function isIphoneX() {
+    try {
+        const iphoneModel = window.device.model;
+        const m = iphoneModel.match(/iPhone(\d+),?(\d+)?/);
+        const model = +m[1];
+
+        //https://www.theiphonewiki.com/wiki/Models#iPhone
+        //10.1, 10.2, 10.4 and 10.5 are iphone 8 and 8 plus
+        if (model > 10 && model != 10.1 && model != 10.2 && model != 10.4 && model != 10.5) { // is iphone X
+            return true;
+        }
+    } catch (e) { }
+
+    return false;
+}
+    
 exports.open = function (arg0, success, error) {
     var fileOpenMode = "open";
     var fileOpenModes = ["open", "dialog"];
+    var autoFixHeaderSize = true;
     
     if (!arg0.inAppBrowserUrl || arg0.inAppBrowserUrl.length === 0){
         error("Please set the url parameter");
@@ -81,6 +98,9 @@ exports.open = function (arg0, success, error) {
     if (arg0.fileOpenMode && fileOpenModes.includes(arg0.fileOpenMode)){
         fileOpenMode = arg0.fileOpenMode;
     }
+    if (arg0.autoFixHeaderSize != undefined){
+        autoFixHeaderSize = arg0.autoFixHeaderSize;
+    }
     
     var url = arg0.inAppBrowserUrl;
     var inAppBrowserOptions = arg0.inAppBrowserOptions;
@@ -89,18 +109,34 @@ exports.open = function (arg0, success, error) {
     //override window open
     var ref = cordova.InAppBrowser.open(url, '_blank',  inAppBrowserOptions);
     
-    ref.addEventListener('loadstop', function() {
-        ref.executeScript({code:
-            "setTimeout(function(){" +
-                "var elem = document.getElementsByClassName(\"" + buttonClassName + "\")[0];" +
-                "if (elem){" +
+    
+    //add viewport-fit=cover so we can fill the left and right sides of the notch (if it exists)
+    var script = "var metaViewport = document.querySelector('meta[name=viewport]');" +
+                 "var metaViewportContent = metaViewport.getAttribute('content') + ', user-scalable=no, viewport-fit=cover';" +
+                 "metaViewport.setAttribute('content', metaViewportContent);";
+    
+    //add html classes to know if it is an iphonex and above with notch
+    if (isIphoneX()){
+        script += "document.getElementsByTagName(\"body\")[0].classList.add(\"iphone-x\");";
+    }
+    
+    //if no setTimeout the click event listener is not added on android
+    script += "setTimeout(function(){" +
+                  "var elem = document.getElementsByClassName(\"" + buttonClassName + "\")[0];" +
+                  "if (elem){" +
                     "elem.addEventListener('click', function(e){" +
-                        "var args = {url: elem.dataset.documenturl};" +
-                        "webkit.messageHandlers.cordova_iab.postMessage(JSON.stringify(args));" +
-                    "});" +
-                "}" +
-            "}, 500);"
-        });
+                    "var args = {url: elem.dataset.documenturl};" +
+                    "webkit.messageHandlers.cordova_iab.postMessage(JSON.stringify(args));" +
+                  "});" +
+               "}" +
+            "}, 500);";
+    
+    ref.addEventListener('loadstop', function() {
+        ref.executeScript({code: script});
+        
+        if(autoFixHeaderSize && cordova.platformId === 'ios') {
+            ref.insertCSS({ code: ".header {padding-top: env(safe-area-inset-top)} .content {margin-top: env(safe-area-inset-top)}" });
+        }
     });
     
     ref.addEventListener('message', function(args) {
