@@ -153,14 +153,25 @@ exports.open = function (arg0, success, error) {
                 );
             }
             if (fileOpenMode === "dialog"){
-                cordova.plugins.fileOpener2.showOpenWithDialog(entry.toURL(), "application/pdf",
-                    function(e){
-                        error(e);
-                    },
-                    function(){
-                        success();
-                    }
-                );
+                if (cordova.platformId === 'android'){
+                    cordova.plugins.fileOpener2.save(entry.toURL(), "application/pdf",
+                        function(e){
+                            error(e);
+                        },
+                        function(){
+                            success();
+                        }
+                    );
+                } else if(cordova.platformId === 'ios'){
+                    cordova.plugins.fileOpener2.showOpenWithDialog(entry.toURL(), "application/pdf",
+                        function(e){
+                            error(e);
+                        },
+                        function(){
+                            success();
+                        }
+                    );
+                }
             }
         }, function(e){
             error(e)
