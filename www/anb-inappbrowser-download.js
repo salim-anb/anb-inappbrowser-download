@@ -12,11 +12,10 @@ function download(url, successCallback, errorCallback){
         }
         var options = {};
         var args = {
-        url: url,
-        targetPath: targetPath,
-        options: options
+            url: url,
+            targetPath: targetPath,
+            options: options
         };
-        //ref.close(); // close window or you get exception
         document.addEventListener('deviceready', function () {
             setTimeout(function() {
                 //window.open(url, '_system', 'location=no,closebuttoncaption=Cerrar,toolbar=yes,enableViewportScale=yes');
@@ -47,23 +46,21 @@ function downloadDocument(args, successCallback, errorCallback) {
                         uri, // file's uri
                         args.targetPath, // where will be saved
                         function(entry) {
-        if (!!successCallback && typeof(successCallback) === 'function'){
-            successCallback(entry);
-        }
-        console.log("download complete: " + entry.toURL());
-        //window.open(entry.toURL(), '_blank', 'location=no,closebuttoncaption=Cerrar,toolbar=yes,enableViewportScale=yes');
-    },
+                            if (!!successCallback && typeof(successCallback) === 'function'){
+                                successCallback(entry);
+                            }
+                        },
                         function(error) {
-        if (!!errorCallback && typeof(errorCallback) === 'function'){
-            errorCallback(error);
-        }
-        console.log("download error source " + error.source);
-        console.log("download error target " + error.target);
-        console.log("upload error code" + error.code);
-    },
+                            if (!!errorCallback && typeof(errorCallback) === 'function'){
+                                errorCallback(error);
+                            }
+                            console.log("download error source " + error.source);
+                            console.log("download error target " + error.target);
+                            console.log("upload error code" + error.code);
+                        },
                         true,
                         args.options
-                        );
+                    );
 }
 
 function isIphoneX() {
@@ -81,7 +78,11 @@ function isIphoneX() {
 
     return false;
 }
-    
+
+exports.close = function(){
+    window.inAppBrowserRef.close();
+}
+
 exports.open = function (arg0, success, error) {
     var fileOpenMode = "open";
     var fileOpenModes = ["open", "dialog"];
@@ -106,9 +107,7 @@ exports.open = function (arg0, success, error) {
     var inAppBrowserOptions = arg0.inAppBrowserOptions;
     var buttonClassName = arg0.buttonClassName;
 
-    //override window open
-    var ref = cordova.InAppBrowser.open(url, '_blank',  inAppBrowserOptions);
-    
+    window.inAppBrowserRef = cordova.InAppBrowser.open(url, '_blank',  inAppBrowserOptions);
     
     //add viewport-fit=cover so we can fill the left and right sides of the notch (if it exists)
     var script = "var metaViewport = document.querySelector('meta[name=viewport]');" +
@@ -131,15 +130,15 @@ exports.open = function (arg0, success, error) {
                "}" +
             "}, 500);";
     
-    ref.addEventListener('loadstop', function() {
-        ref.executeScript({code: script});
+    window.inAppBrowserRef.addEventListener('loadstop', function() {
+        window.inAppBrowserRef.executeScript({code: script});
         
         if(autoFixHeaderSize && cordova.platformId === 'ios') {
-            ref.insertCSS({ code: ".header {padding-top: env(safe-area-inset-top)} .content {margin-top: env(safe-area-inset-top)}" });
+            window.inAppBrowserRef.insertCSS({ code: ".header {padding-top: env(safe-area-inset-top)} .content {margin-top: env(safe-area-inset-top)}" });
         }
     });
     
-    ref.addEventListener('message', function(args) {
+    window.inAppBrowserRef.addEventListener('message', function(args) {
         console.log('MESSAGE RECEIVED FROM IN_APP_BROWSER');
         download(args.data.url, function(entry){
             if (fileOpenMode === "open"){
