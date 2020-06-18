@@ -2,7 +2,7 @@ var exec = require('cordova/exec');
 
 function download(url, successCallback, errorCallback){
     var extension = url.substr(url.length - 4);
-    if (extension == '.pdf') {
+    //if (extension == '.pdf') {
         var targetPath = "";
         if (cordova.platformId === 'android') {
             targetPath = cordova.file.externalCacheDirectory + "contract.pdf";
@@ -35,7 +35,7 @@ function download(url, successCallback, errorCallback){
                 }); // call the function which will download the file 1s after the window is closed, just in case..
             }, 1000);
         });
-    }
+    //}
 }
 
 function downloadDocument(args, successCallback, errorCallback) {
