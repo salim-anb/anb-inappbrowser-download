@@ -1,18 +1,10 @@
 var exec = require('cordova/exec');
 
 function download(url, filename, successCallback, errorCallback){
-    var targetPath = "";
-    if (cordova.platformId === 'android') {
-        targetPath = cordova.file.externalCacheDirectory + "contract.pdf";
-    }
-    else if(cordova.platformId === 'ios') {
-        targetPath = cordova.file.documentsDirectory + "contact.pdf";
-    }
     var options = {};
     var args = {
         url: url,
         filename: filename,
-        targetPath: targetPath,
         options: options
     };
     document.addEventListener('deviceready', function () {
