@@ -9,7 +9,6 @@
     <dependency id="cordova-plugin-inappbrowser" url="https://github.com/agoncalvesos/cordova-plugin-inappbrowser.git#3.1.0-OS3-FileUploadWorking" />
     <dependency id="cordova-plugin-wkwebview-engine" url="https://github.com/agoncalvesos/cordova-plugin-wkwebview-engine.git#1.2.1" />
     <dependency id="cordova-plugin-file-opener2" url="https://github.com/agoncalvesos/cordova-plugin-file-opener2.git#3.1.0">
-    <dependency id="cordova-plugin-file-transfer" url="https://github.com/OutSystemsExperts/cordova-plugin-file-transfer.git" commit="1.5.1.os" />
         <variable name="ANDROID_SUPPORT_V4_VERSION" value="27.+" />
     </dependency>
     <dependency id="cordova-plugin-file-transfer" url="https://github.com/OutSystemsExperts/cordova-plugin-file-transfer.git" commit="1.5.1.os" />
