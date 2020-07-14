@@ -1,49 +1,45 @@
 var exec = require('cordova/exec');
-//var mime = require('mime-types');
 
-function download(url, successCallback, errorCallback){
-    var extension = url.substr(url.length - 4);
-    //if (extension == '.pdf') {
-        var targetPath = "";
-        if (cordova.platformId === 'android') {
-            targetPath = cordova.file.externalCacheDirectory + "contract.pdf";
-        }
-        else if(cordova.platformId === 'ios') {
-            targetPath = cordova.file.documentsDirectory + "contact.pdf";
-        }
-        var options = {};
-        var args = {
-            url: url,
-            targetPath: targetPath,
-            options: options
-        };
-        document.addEventListener('deviceready', function () {
-            setTimeout(function() {
-                //window.open(url, '_system', 'location=no,closebuttoncaption=Cerrar,toolbar=yes,enableViewportScale=yes');
-                downloadDocument(args,
-                                function(entry){
-                    if (!!successCallback && typeof(successCallback) === 'function'){
-                        successCallback(entry);
-                    }
-                    console.log("download complete: " + entry.toURL());
-                }, function(error){
-                    if (!!errorCallback && typeof(errorCallback) === 'function'){
-                        errorCallback(error);
-                    }
-                    console.log("download error source " + error.source);
-                    console.log("download error target " + error.target);
-                    console.log("upload error code" + error.code);
-                }); // call the function which will download the file 1s after the window is closed, just in case..
-            }, 1000);
-        });
-    //}
+function download(url, filename, successCallback, errorCallback){
+    var targetPath = "";
+    if (cordova.platformId === 'android') {
+        targetPath = cordova.file.externalCacheDirectory + "contract.pdf";
+    }
+    else if(cordova.platformId === 'ios') {
+        targetPath = cordova.file.documentsDirectory + "contact.pdf";
+    }
+    var options = {};
+    var args = {
+        url: url,
+        filename: filename,
+        targetPath: targetPath,
+        options: options
+    };
+    document.addEventListener('deviceready', function () {
+        setTimeout(function() {
+            downloadDocument(args, function(entry, contentType){
+                if (!!successCallback && typeof(successCallback) === 'function'){
+                    successCallback(entry, contentType);
+                }
+                console.log("download complete: " + entry.toURL());
+            }, function(error){
+                if (!!errorCallback && typeof(errorCallback) === 'function'){
+                    errorCallback(error);
+                }
+                console.log("download error source " + error.source);
+                console.log("download error target " + error.target);
+                console.log("upload error code" + error.code);
+            }); // call the function which will download the file 1s after the window is closed, just in case..
+        }, 1000);
+    });
 }
 
 function downloadDocument(args, successCallback, errorCallback){
     var uri = encodeURI(args.url);
-    window.requestFileSystem(LocalFileSystem.PERSISTENT, 1024*1024, function (fs) {
+    var filename = encodeURI(args.filename);
+    window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function (fs) {
         console.log('file system open: ' + fs.name);
-        fs.root.getFile('contract2.pdf', { create: true, exclusive: false }, function (fileEntry) {
+        fs.root.getFile(filename, { create: true, exclusive: false }, function (fileEntry) {
             console.log('fileEntry is file? ' + fileEntry.isFile.toString());
             var oReq = new XMLHttpRequest();
             // Make sure you add the domain name to the Content-Security-Policy <meta> element.
@@ -51,17 +47,7 @@ function downloadDocument(args, successCallback, errorCallback){
             // Define how you want the XHR data to come back
             oReq.responseType = "blob";
             
-            
-            window.oReq = oReq;
-            window.fileEntry = fileEntry;
-            oReq.onload = function (entry) {
-                window.lala = fileEntry;
-                /*var contentType = oReq.getResponseHeader("content-type");
-                console.log("entry", entry)
-                if (!!successCallback && typeof(successCallback) === 'function'){
-                    successCallback(entry);
-                }*/
-                
+            oReq.onload = function (e) {      
                 var blob = oReq.response;
                  if (blob) {
                      console.log("we have blob");
@@ -69,8 +55,9 @@ function downloadDocument(args, successCallback, errorCallback){
                      fileEntry.createWriter(function(fileWriter) {
                         console.log("createWriter--------------	");
                          fileWriter.onwriteend = function(e) {
+                            var contentType = oReq.getResponseHeader("content-type");
                              if (!!successCallback && typeof(successCallback) === 'function'){
-                                 successCallback(fileEntry);
+                                 successCallback(fileEntry, contentType);
                              }
                          };
 
@@ -97,32 +84,6 @@ function downloadDocument(args, successCallback, errorCallback){
         }, function (err) { console.error('error getting file! ' + err); });
     }, function (err) { console.error('error getting persistent fs! ' + err); });
 }
-
-/*function downloadDocument(args, successCallback, errorCallback) {
-    var fileTransfer = new FileTransfer();
-    var uri = encodeURI(args.url);
-    
-    fileTransfer.download(
-                        uri, // file's uri
-                        args.targetPath, // where will be saved
-                        function(entry) {
-                            console.log("entry", entry)
-                            if (!!successCallback && typeof(successCallback) === 'function'){
-                                successCallback(entry);
-                            }
-                        },
-                        function(error) {
-                            if (!!errorCallback && typeof(errorCallback) === 'function'){
-                                errorCallback(error);
-                            }
-                            console.log("download error source " + error.source);
-                            console.log("download error target " + error.target);
-                            console.log("upload error code" + error.code);
-                        },
-                        true,
-                        args.options
-                    );
-}*/
 
 function isIphoneX() {
     try {
@@ -182,13 +143,18 @@ exports.open = function (arg0, success, error) {
     
     //if no setTimeout the click event listener is not added on android
     script += "setTimeout(function(){" +
-                  "var elem = document.getElementsByClassName(\"" + buttonClassName + "\")[0];" +
-                  "if (elem){" +
-                    "elem.addEventListener('click', function(e){" +
-                    "var args = {url: elem.dataset.documenturl};" +
-                    "webkit.messageHandlers.cordova_iab.postMessage(JSON.stringify(args));" +
-                  "});" +
-               "}" +
+                "var downloadButtons = document.querySelectorAll(\"." + buttonClassName + "\");" +
+                "downloadButtons.forEach(function(downloadButton){ " +
+                    "if (downloadButton) {" +
+                        "downloadButton.addEventListener('click', function(e){" +
+                            "var args = {" +
+                                "url: downloadButton.dataset.documenturl," +
+                                "filename: downloadButton.dataset.filename" +
+                            "};" +
+                            "webkit.messageHandlers.cordova_iab.postMessage(JSON.stringify(args));" +
+                        "});" +
+                    "}" +
+                "});" +
             "}, 500);";
     
     window.inAppBrowserRef.addEventListener('loadstop', function() {
@@ -201,9 +167,9 @@ exports.open = function (arg0, success, error) {
     
     window.inAppBrowserRef.addEventListener('message', function(args) {
         console.log('MESSAGE RECEIVED FROM IN_APP_BROWSER');
-        download(args.data.url, function(entry){
+        download(args.data.url, args.data.filename, function(entry, contentType){
             if (fileOpenMode === "open"){
-                cordova.plugins.fileOpener2.open(entry.toURL(), "application/pdf",
+                cordova.plugins.fileOpener2.open(entry.toURL(), contentType,
                     function(e){
                         error(e);
                     },
@@ -214,7 +180,7 @@ exports.open = function (arg0, success, error) {
             }
             if (fileOpenMode === "dialog"){
                 if (cordova.platformId === 'android'){
-                    cordova.plugins.fileOpener2.save(entry.toURL(), "application/pdf",
+                    cordova.plugins.fileOpener2.save(entry.toURL(), args.data.filename, contentType,
                         function(e){
                             error(e);
                         },
@@ -223,7 +189,7 @@ exports.open = function (arg0, success, error) {
                         }
                     );
                 } else if(cordova.platformId === 'ios'){
-                    cordova.plugins.fileOpener2.showOpenWithDialog(entry.toURL(), "application/pdf",
+                    cordova.plugins.fileOpener2.showOpenWithDialog(entry.toURL(), contentType,
                         function(e){
                             error(e);
                         },
